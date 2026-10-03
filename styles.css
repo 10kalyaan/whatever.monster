@@ -1,0 +1,349 @@
+:root {
+  --bg: #050505;
+  --ink: #ecece8;
+  --muted: #8a8d8c;
+  --accent: #4ec9b0;   /* brand accent: the VS Code "type" teal */
+  --red: #e51400;      /* breakpoint red, only on hover */
+  --editor: #1e1e1e;
+
+  /* VS Code Dark+ syntax colours */
+  --t-kw: #569cd6;
+  --t-ctrl: #c586c0;
+  --t-str: #ce9178;
+  --t-fn: #dcdcaa;
+  --t-type: #4ec9b0;
+  --t-var: #9cdcfe;
+  --t-num: #b5cea8;
+  --t-com: #6a9955;
+  --t-punc: #808080;
+  --t-text: #d4d4d4;
+
+  --mono: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+  --dot: "Doto", var(--mono);
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--mono);
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; text-decoration: none; }
+
+/* syntax tokens */
+.t-kw { color: var(--t-kw); }
+.t-ctrl { color: var(--t-ctrl); }
+.t-str { color: var(--t-str); }
+.t-fn { color: var(--t-fn); }
+.t-type { color: var(--t-type); }
+.t-var { color: var(--t-var); }
+.t-num { color: var(--t-num); }
+.t-com { color: var(--t-com); }
+.t-punc { color: var(--t-punc); }
+.t-text { color: var(--t-text); }
+.t-tag { color: var(--t-kw); }
+.t-attr { color: var(--t-var); }
+
+/* ================= HERO ================= */
+#hero { position: relative; height: 220vh; }
+
+.stage {
+  --mx: .5; --my: .5;   /* pointer, 0..1 */
+  --a: 0;               /* glass lifting off */
+  --c: 0;               /* zooming into the board */
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100svh;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+/* clip-path instead of animating inset/border-radius: no layout on scroll */
+.chassis {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #0b0c0c;
+  clip-path: inset(calc(14px * (1 - var(--c))) round calc(36px * (1 - var(--c))));
+}
+
+.internals {
+  position: absolute;
+  inset: -12px;
+  transform:
+    translate3d(calc((var(--mx) - .5) * -16px), calc((var(--my) - .5) * -12px), 0)
+    scale(calc(1 + var(--c) * .45));
+  will-change: transform;
+}
+/* darkening via an opacity overlay — far cheaper than filter: brightness/blur */
+.internals::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #050505;
+  opacity: calc(var(--c) * .72);
+  will-change: opacity;
+}
+.board { display: block; width: 100%; height: 100%; }
+
+.board .traces path { fill: none; stroke: #222625; stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.board .pulse {
+  fill: none;
+  stroke: #f4f4f0;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 5 95;
+  animation: flow 4s linear infinite;
+}
+/* data on the board is coloured like syntax tokens */
+.board .pulse.kw { stroke: var(--t-kw); }
+.board .pulse.str { stroke: var(--t-str); }
+.board .pulse.fn { stroke: var(--t-fn); }
+.board .pulse.type { stroke: var(--t-type); }
+.board .pulse.ctrl { stroke: var(--t-ctrl); }
+@keyframes flow { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
+
+.board .fan { transform-origin: 1330px 330px; animation: spin 2.2s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* glyph strips */
+.glyphs {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: calc(1 - var(--a));
+  will-change: opacity;
+}
+.glyph {
+  --glow: #fff;
+  fill: none;
+  stroke: var(--glow);
+  filter: drop-shadow(0 0 6px var(--glow));
+  stroke-width: 7;
+  stroke-linecap: round;
+  opacity: .12;
+  animation: glyph 7s ease-in-out infinite;
+}
+.glyph.ring { stroke-dasharray: 23 2; transform-origin: 1330px 330px; transform: rotate(-56deg); }
+/* each light strip is a syntax colour */
+.g1 { --glow: var(--t-kw); }
+.g2 { --glow: var(--t-ctrl); animation-delay: .35s; }
+.g3 { --glow: var(--t-str); animation-delay: .7s; }
+.g4 { --glow: var(--t-fn); animation-delay: 1.05s; }
+.glyph-dot { fill: var(--accent); filter: drop-shadow(0 0 5px var(--accent)); animation: rec 1.6s ease-in-out infinite; }
+@keyframes glyph {
+  0%, 100% { opacity: .12; }
+  3% { opacity: 1; }
+  8% { opacity: .12; }
+  12% { opacity: .95; }
+  22% { opacity: .12; }
+}
+@keyframes rec { 50% { opacity: .25; } }
+
+/* the glass */
+.glass {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: calc(1 - var(--a) * .9);
+  transform: scale(calc(1 + var(--a) * .04));
+  will-change: opacity, transform;
+  background: linear-gradient(160deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, .015) 38%, rgba(255, 255, 255, .045));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .12),
+    inset 0 1px 0 rgba(255, 255, 255, .28),
+    inset 0 0 120px rgba(0, 0, 0, .55);
+}
+.glass::before { /* glare that follows the pointer */
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(600px circle at calc(var(--mx) * 100%) calc(var(--my) * 100%), rgba(255, 255, 255, .09), transparent 60%);
+}
+.glass::after { /* long diagonal sheen */
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(115deg,
+    transparent calc(22% + var(--mx) * 18%),
+    rgba(255, 255, 255, .075) calc(30% + var(--mx) * 18%),
+    transparent calc(40% + var(--mx) * 18%));
+}
+
+.screw {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #c9cbca, #5c5f5e 70%);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .8);
+}
+.screw::before, .screw::after {
+  content: "";
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 7px; height: 1.5px;
+  background: #2b2d2c;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+.screw::after { transform: translate(-50%, -50%) rotate(-45deg); }
+.screw.tl { top: 22px; left: 22px; }
+.screw.tr { top: 22px; right: 22px; }
+.screw.bl { bottom: 22px; left: 22px; }
+.screw.br { bottom: 22px; right: 22px; }
+
+/* nav */
+.nav {
+  position: absolute;
+  top: 26px;
+  left: 50px;
+  right: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  z-index: 5;
+  opacity: calc(1 - var(--a));
+}
+.logo { font-weight: 700; letter-spacing: .02em; }
+.dot { color: var(--accent); }
+.links { display: flex; gap: 26px; align-items: center; }
+.links a { color: #b8bbba; transition: color .2s; }
+.links a:hover { color: var(--ink); }
+.links .cta {
+  color: var(--t-fn);
+  padding: 7px 14px;
+  border: 1px solid rgba(255, 255, 255, .16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .04);
+  backdrop-filter: blur(8px);
+}
+
+/* frosted name plate */
+.plate {
+  position: absolute;
+  left: clamp(20px, 5vw, 84px);
+  bottom: clamp(72px, 13vh, 150px);
+  max-width: calc(100% - 40px);
+  padding: clamp(11px, 1.45vw, 19px) clamp(12px, 1.7vw, 24px);
+  border-radius: 15px;
+  background: linear-gradient(rgba(240, 240, 235, .05), rgba(240, 240, 235, .05)), rgba(10, 10, 10, .4);
+  border: 1px solid rgba(255, 255, 255, .12);
+  backdrop-filter: blur(16px) saturate(120%);
+  -webkit-backdrop-filter: blur(16px) saturate(120%);
+  opacity: calc(1 - var(--a) * 1.2);
+  transform: translate3d(0, calc(var(--a) * -48px), 0);
+  will-change: opacity, transform;
+  z-index: 4;
+}
+.kicker, .sub { margin: 0; font-size: clamp(10px, .65vw, 12px); }
+.sub { margin-top: 8px; }
+.brand {
+  margin: 6px 0 0;
+  font-family: var(--dot);
+  font-weight: 800;
+  font-size: clamp(18px, 4.45vw, 80px);
+  line-height: .95;
+  letter-spacing: -.01em;
+  white-space: nowrap;
+  animation: boot 1.2s steps(6) both;
+}
+@keyframes boot {
+  0% { opacity: 0; }
+  30% { opacity: 1; }
+  45% { opacity: .2; }
+  60%, 100% { opacity: 1; }
+}
+
+.hint {
+  position: absolute;
+  left: 50%;
+  bottom: 30px;
+  transform: translateX(-50%);
+  font-size: 12px;
+  opacity: calc(.8 - var(--a) * 2);
+  z-index: 4;
+}
+.hint .arrow { display: inline-block; color: var(--muted); animation: bob 1.6s ease-in-out infinite; }
+@keyframes bob { 50% { transform: translateY(4px); } }
+
+/* ================= hover: "the code broke" ================= */
+[data-peek] { position: relative; }
+[data-peek].broken {
+  animation: glitch .32s steps(2) 1;
+  text-shadow: 1.5px 0 rgba(244, 71, 71, .85), -1.5px 0 rgba(78, 201, 176, .85);
+  outline: 1px dashed rgba(244, 71, 71, .6);
+  outline-offset: 6px;
+}
+@keyframes glitch {
+  0% { clip-path: inset(0 0 60% 0); transform: translate(-3px, 0); }
+  20% { clip-path: inset(40% 0 20% 0); transform: translate(3px, 1px); }
+  40% { clip-path: inset(10% 0 70% 0); transform: translate(-2px, -1px); }
+  60% { clip-path: inset(70% 0 0 0); transform: translate(2px, 0); }
+  80% { clip-path: inset(0 0 0 0); transform: translate(-1px, 0); }
+  100% { clip-path: inset(0 0 0 0); transform: none; }
+}
+.peek {
+  position: fixed;
+  z-index: 50;
+  max-width: min(520px, calc(100vw - 24px));
+  font-size: 12px;
+  line-height: 1.6;
+  background: #1e1e1e;
+  border: 1px solid #3c3c3c;
+  border-left: 3px solid var(--red);
+  border-radius: 8px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .6);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity .15s, transform .15s;
+}
+.peek.on { opacity: 1; transform: none; }
+.peek-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  color: #cccccc;
+  background: #252526;
+  border-bottom: 1px solid #333;
+  font-size: 11px;
+}
+.peek-head .bp { width: 9px; height: 9px; border-radius: 50%; background: #e51400; }
+.peek pre { margin: 0; padding: 10px 12px; white-space: pre-wrap; word-break: break-all; font-family: var(--mono); }
+
+/* ================= NEXT (placeholder) ================= */
+.next {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 80px 16px;
+  background: var(--editor);
+}
+.next-inner { width: min(880px, 100%); }
+.next h2 { font-size: clamp(20px, 3.4vw, 40px); font-weight: 500; margin: 16px 0; }
+.next p { margin: 0; font-size: 14px; }
+
+/* ================= small screens ================= */
+@media (max-width: 720px) {
+  .nav { left: 24px; right: 24px; top: 22px; }
+  .links a:not(.cta) { display: none; }
+  .screw { display: none; }
+  .chassis { clip-path: inset(calc(14px * (1 - var(--c))) round calc(26px * (1 - var(--c)))); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .board .pulse, .board .fan, .glyph, .glyph-dot, .brand, .hint .arrow { animation: none; }
+  .glyph { opacity: .5; }
+  [data-peek].broken { animation: none; }
+}
