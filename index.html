@@ -18,13 +18,19 @@
       <div class="chassis">
 
         <!-- what's behind the glass (generated in main.js) -->
-        <div class="internals">
-          <svg class="board" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
+        <div class="internals" aria-hidden="true">
+          <canvas class="layer"></canvas>
+          <canvas class="layer"></canvas>
+          <canvas class="layer"></canvas>
+          <div class="shade"></div>
         </div>
 
         <!-- glyph light strips that sit on the glass -->
         <svg class="glyphs" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
           <circle class="glyph g1 ring" cx="1330" cy="330" r="196" pathLength="100" />
+          <circle class="glyph ring r2" cx="1330" cy="330" r="196" pathLength="100" />
+          <circle class="glyph ring r3" cx="1330" cy="330" r="196" pathLength="100" />
+          <circle class="glyph ring r4" cx="1330" cy="330" r="196" pathLength="100" />
           <line class="glyph g2" x1="1068" y1="640" x2="1128" y2="580" />
           <line class="glyph g3" x1="1190" y1="882" x2="1480" y2="882" />
           <line class="glyph g4" x1="84" y1="270" x2="84" y2="470" />
@@ -36,6 +42,9 @@
           <span class="screw tl"></span><span class="screw tr"></span>
           <span class="screw bl"></span><span class="screw br"></span>
         </div>
+
+        <!-- black rim around the glass; scales outward as you scroll -->
+        <div class="frame" aria-hidden="true"></div>
 
         <nav class="nav">
           <a class="logo" href="#hero" data-peek>whatever<span class="dot">.</span>monster</a>

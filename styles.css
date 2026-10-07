@@ -1,8 +1,10 @@
 :root {
-  --bg: #050505;
+  --bg: #000;
   --ink: #ecece8;
   --muted: #8a8d8c;
-  --accent: #4ec9b0;   /* brand accent: the VS Code "type" teal */
+  /* black + white; green is the only accent (keep in sync with main.js) */
+  --green: #2bff72;
+  --accent: var(--green);
   --red: #e51400;      /* breakpoint red, only on hover */
   --editor: #1e1e1e;
 
@@ -50,10 +52,9 @@ a { color: inherit; text-decoration: none; }
 /* ================= HERO ================= */
 #hero { position: relative; height: 220vh; }
 
+/* scroll effects are set from main.js as transform/opacity on single layers.
+   (don't drive them with custom properties on .stage: that restyles every child) */
 .stage {
-  --mx: .5; --my: .5;   /* pointer, 0..1 */
-  --a: 0;               /* glass lifting off */
-  --c: 0;               /* zooming into the board */
   position: sticky;
   top: 0;
   height: 100vh;
@@ -62,53 +63,40 @@ a { color: inherit; text-decoration: none; }
   background: var(--bg);
 }
 
-/* clip-path instead of animating inset/border-radius: no layout on scroll */
 .chassis {
   position: absolute;
   inset: 0;
   overflow: hidden;
-  background: #0b0c0c;
-  clip-path: inset(calc(14px * (1 - var(--c))) round calc(36px * (1 - var(--c))));
+  background: #020202;
 }
 
+/* the board: three canvases (still / live / still) drawn by main.js */
 .internals {
   position: absolute;
-  inset: -12px;
-  transform:
-    translate3d(calc((var(--mx) - .5) * -16px), calc((var(--my) - .5) * -12px), 0)
-    scale(calc(1 + var(--c) * .45));
+  inset: 0;
   will-change: transform;
 }
-/* darkening via an opacity overlay — far cheaper than filter: brightness/blur */
-.internals::after {
-  content: "";
+.internals .layer { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+/* darkens the board as you zoom in */
+.shade {
   position: absolute;
   inset: 0;
   background: #050505;
-  opacity: calc(var(--c) * .72);
+  opacity: 0;
   will-change: opacity;
 }
-.board { display: block; width: 100%; height: 100%; }
 
-.board .traces path { fill: none; stroke: #222625; stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
-.board .pulse {
-  fill: none;
-  stroke: #f4f4f0;
-  stroke-width: 3;
-  stroke-linecap: round;
-  stroke-dasharray: 5 95;
-  animation: flow 4s linear infinite;
+/* black rim with rounded inner corners; scaling it pushes it off screen */
+.frame {
+  position: absolute;
+  inset: 0;
+  border: 14px solid var(--bg);
+  border-radius: 50px;
+  box-shadow: 0 0 0 80px var(--bg);
+  pointer-events: none;
+  will-change: transform;
+  z-index: 3;
 }
-/* data on the board is coloured like syntax tokens */
-.board .pulse.kw { stroke: var(--t-kw); }
-.board .pulse.str { stroke: var(--t-str); }
-.board .pulse.fn { stroke: var(--t-fn); }
-.board .pulse.type { stroke: var(--t-type); }
-.board .pulse.ctrl { stroke: var(--t-ctrl); }
-@keyframes flow { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
-
-.board .fan { transform-origin: 1330px 330px; animation: spin 2.2s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
 
 /* glyph strips */
 .glyphs {
@@ -117,7 +105,6 @@ a { color: inherit; text-decoration: none; }
   width: 100%;
   height: 100%;
   pointer-events: none;
-  opacity: calc(1 - var(--a));
   will-change: opacity;
 }
 .glyph {
@@ -127,39 +114,40 @@ a { color: inherit; text-decoration: none; }
   filter: drop-shadow(0 0 6px var(--glow));
   stroke-width: 7;
   stroke-linecap: round;
-  opacity: .12;
+  opacity: .25;
   animation: glyph 7s ease-in-out infinite;
 }
-.glyph.ring { stroke-dasharray: 23 2; transform-origin: 1330px 330px; transform: rotate(-56deg); }
-/* each light strip is a syntax colour */
-.g1 { --glow: var(--t-kw); }
-.g2 { --glow: var(--t-ctrl); animation-delay: .35s; }
-.g3 { --glow: var(--t-str); animation-delay: .7s; }
-.g4 { --glow: var(--t-fn); animation-delay: 1.05s; }
-.glyph-dot { fill: var(--accent); filter: drop-shadow(0 0 5px var(--accent)); animation: rec 1.6s ease-in-out infinite; }
+/* each strip takes the colour of the zone it sits over */
+.glyph.ring { stroke-dasharray: 23 77; transform-origin: 1330px 330px; transform: rotate(-56deg); }
+.glyph.ring.r2 { stroke-dashoffset: -25; animation-delay: .15s; }
+.glyph.ring.r3 { stroke-dashoffset: -50; animation-delay: .3s; }
+.glyph.ring.r4 { stroke-dashoffset: -75; animation-delay: .45s; }
+.g2 { animation-delay: .6s; }
+.g3 { animation-delay: .9s; }
+.g4 { animation-delay: 1.2s; }
+.glyph-dot { fill: var(--green); filter: drop-shadow(0 0 5px var(--green)); animation: rec 1.6s ease-in-out infinite; }
 @keyframes glyph {
-  0%, 100% { opacity: .12; }
+  0%, 100% { opacity: .25; }
   3% { opacity: 1; }
-  8% { opacity: .12; }
+  8% { opacity: .25; }
   12% { opacity: .95; }
-  22% { opacity: .12; }
+  22% { opacity: .25; }
 }
 @keyframes rec { 50% { opacity: .25; } }
 
 /* the glass */
 .glass {
+  --mx: .5; --my: .5;   /* pointer, 0..1 — set from main.js */
   position: absolute;
-  inset: 0;
-  border-radius: inherit;
+  inset: 14px;
+  border-radius: 36px;
   pointer-events: none;
-  opacity: calc(1 - var(--a) * .9);
-  transform: scale(calc(1 + var(--a) * .04));
   will-change: opacity, transform;
-  background: linear-gradient(160deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, .015) 38%, rgba(255, 255, 255, .045));
+  background: linear-gradient(160deg, rgba(255, 255, 255, .045), rgba(255, 255, 255, .008) 38%, rgba(255, 255, 255, .025));
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, .12),
     inset 0 1px 0 rgba(255, 255, 255, .28),
-    inset 0 0 120px rgba(0, 0, 0, .55);
+    inset 0 0 140px rgba(0, 0, 0, .7);
 }
 .glass::before { /* glare that follows the pointer */
   content: "";
@@ -204,15 +192,15 @@ a { color: inherit; text-decoration: none; }
 /* nav */
 .nav {
   position: absolute;
-  top: 26px;
-  left: 50px;
-  right: 50px;
+  top: 40px;
+  left: 64px;
+  right: 64px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   font-size: 13px;
   z-index: 5;
-  opacity: calc(1 - var(--a));
+  will-change: opacity;
 }
 .logo { font-weight: 700; letter-spacing: .02em; }
 .dot { color: var(--accent); }
@@ -220,7 +208,7 @@ a { color: inherit; text-decoration: none; }
 .links a { color: #b8bbba; transition: color .2s; }
 .links a:hover { color: var(--ink); }
 .links .cta {
-  color: var(--t-fn);
+  color: var(--green);
   padding: 7px 14px;
   border: 1px solid rgba(255, 255, 255, .16);
   border-radius: 999px;
@@ -231,20 +219,21 @@ a { color: inherit; text-decoration: none; }
 /* frosted name plate */
 .plate {
   position: absolute;
-  left: clamp(20px, 5vw, 84px);
-  bottom: clamp(72px, 13vh, 150px);
-  max-width: calc(100% - 40px);
+  left: calc(14px + clamp(20px, 5vw, 84px));
+  bottom: calc(14px + clamp(72px, 13vh, 150px));
+  max-width: calc(100% - 68px);
   padding: clamp(11px, 1.45vw, 19px) clamp(12px, 1.7vw, 24px);
   border-radius: 15px;
   background: linear-gradient(rgba(240, 240, 235, .05), rgba(240, 240, 235, .05)), rgba(10, 10, 10, .4);
   border: 1px solid rgba(255, 255, 255, .12);
-  backdrop-filter: blur(16px) saturate(120%);
-  -webkit-backdrop-filter: blur(16px) saturate(120%);
-  opacity: calc(1 - var(--a) * 1.2);
-  transform: translate3d(0, calc(var(--a) * -48px), 0);
+  backdrop-filter: blur(12px) saturate(120%);
+  -webkit-backdrop-filter: blur(12px) saturate(120%);
   will-change: opacity, transform;
   z-index: 4;
 }
+.plate .t-com { color: #7d807f; }
+.plate .t-kw { color: #b8bbba; }
+.plate .t-var { color: var(--ink); }
 .kicker, .sub { margin: 0; font-size: clamp(10px, .65vw, 12px); }
 .sub { margin-top: 8px; }
 .brand {
@@ -267,10 +256,10 @@ a { color: inherit; text-decoration: none; }
 .hint {
   position: absolute;
   left: 50%;
-  bottom: 30px;
+  bottom: 44px;
   transform: translateX(-50%);
   font-size: 12px;
-  opacity: calc(.8 - var(--a) * 2);
+  opacity: .8;
   z-index: 4;
 }
 .hint .arrow { display: inline-block; color: var(--muted); animation: bob 1.6s ease-in-out infinite; }
@@ -336,14 +325,15 @@ a { color: inherit; text-decoration: none; }
 
 /* ================= small screens ================= */
 @media (max-width: 720px) {
-  .nav { left: 24px; right: 24px; top: 22px; }
+  .nav { left: 38px; right: 38px; top: 36px; }
   .links a:not(.cta) { display: none; }
   .screw { display: none; }
-  .chassis { clip-path: inset(calc(14px * (1 - var(--c))) round calc(26px * (1 - var(--c)))); }
+  .frame { border-radius: 40px; }
+  .glass { border-radius: 26px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .board .pulse, .board .fan, .glyph, .glyph-dot, .brand, .hint .arrow { animation: none; }
+  .glyph, .glyph-dot, .brand, .hint .arrow { animation: none; }
   .glyph { opacity: .5; }
   [data-peek].broken { animation: none; }
 }
