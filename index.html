@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>whatever.monster</title>
-  <meta name="description" content="whatever.monster — nothing to hide." />
+  <meta name="description" content="WTV — short for whatever. A Bengaluru-born automation studio building custom AI tools, automations and websites around how your business actually works." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Doto:wght@400..900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
@@ -46,18 +46,22 @@
         <!-- black rim around the glass; scales outward as you scroll -->
         <div class="frame" aria-hidden="true"></div>
 
+        <!-- fades the bottom of the board to black at the end of the scroll, so the hand-off to the page is seamless -->
+        <div class="fade-out" aria-hidden="true"></div>
+
         <nav class="nav">
           <a class="logo" href="#hero" data-peek>whatever<span class="dot">.</span>monster</a>
           <div class="links">
-            <a href="#services" data-peek>./services</a>
-            <a href="#about" data-peek>./about</a>
             <a href="#work" data-peek>./work</a>
-            <a class="cta" href="#contact" data-peek>hire_us()</a>
+            <a href="#how" data-peek>./how-it-works</a>
+            <a href="#about" data-peek>./about</a>
+            <a href="#faq" data-peek>./faq</a>
+            <a class="cta" href="#contact" data-peek>book_a_call()</a>
           </div>
         </nav>
 
         <div class="plate">
-          <p class="kicker"><span class="t-com">// est. 2026 — you're looking at the inside</span></p>
+          <p class="kicker"><span class="t-com">// wtv — short for whatever.</span></p>
           <h1 class="brand" data-peek>whatever<span class="dot">.</span>monster</h1>
           <p class="sub"><span class="t-kw">const</span> <span class="t-var">secrets</span> <span class="t-punc">=</span> <span class="t-kw">null</span><span class="t-punc">;</span></p>
         </div>
@@ -68,14 +72,309 @@
     </div>
   </section>
 
-  <!-- ============ NEXT: placeholder until we design it ============ -->
-  <section id="services" class="next">
-    <div class="next-inner">
-      <p class="t-com">// 02 — services</p>
-      <h2><span class="t-kw">export</span> <span class="t-kw">const</span> <span class="t-var">next</span> <span class="t-punc">=</span> <span class="t-str">"coming soon"</span><span class="t-punc">;</span></h2>
-      <p class="t-com">// TODO: services · about · work · hire us · contact</p>
+  <!-- fixed bar that takes over from the hero nav once you're past the glass -->
+  <header class="topbar" aria-label="site">
+    <a class="logo" href="#hero" data-peek>whatever<span class="dot">.</span>monster</a>
+    <nav class="links">
+      <a href="#work" data-peek>./work</a>
+      <a href="#how" data-peek>./how-it-works</a>
+      <a href="#about" data-peek>./about</a>
+      <a href="#faq" data-peek>./faq</a>
+      <a class="cta" href="#contact" data-peek>book_a_call()</a>
+    </nav>
+  </header>
+
+  <main class="content">
+
+    <!-- ============ 01 · intro: split, with a terminal that "builds whatever" ============ -->
+    <section id="intro" class="section intro">
+      <div class="intro-grid">
+        <div>
+          <p class="eyebrow">// 01 — hello</p>
+          <h2 class="intro-head reveal" data-peek>custom AI tools and automations for businesses that are done doing it the hard way.</h2>
+          <p class="lead reveal">We're a Bengaluru-born automation studio that builds custom tools, AI systems and websites around how your business actually works. No templates. No "have you tried this app?" Just the thing you need, built from scratch. And if someone already sold you AI slop, we'll clean it up.</p>
+          <div class="actions reveal">
+            <a class="btn primary" href="#contact" data-peek>book a call</a>
+            <a class="btn whatsapp-link" href="#contact" data-peek>whatsapp us</a>
+            <span class="badge"><i></i>got AI slop? we fix that.</span>
+          </div>
+          <p class="fine reveal">one sentence about your problem is enough to start. we'll take it from there.</p>
+        </div>
+        <div class="window term reveal" aria-hidden="true">
+          <div class="win-bar"><i></i><i></i><i></i><span>wtv — zsh</span></div>
+          <div class="term-body">
+            <p class="term-line" style="--i:0"><span class="prompt">$</span> wtv new --problem "we track every order on paper"</p>
+            <p class="term-line dim" style="--i:1">→ reading the problem…</p>
+            <p class="term-line dim" style="--i:2">→ asking annoying questions…</p>
+            <p class="term-line dim" style="--i:3">→ building whatever fixes it…</p>
+            <p class="term-line ok" style="--i:4">✓ shipped. <span class="caret"></span></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 02 · the problem: sticky header + list of open "issues" ============ -->
+    <section id="problem" class="section">
+      <div class="split">
+        <div class="sticky">
+          <p class="eyebrow">// 02 — the problem</p>
+          <h2 class="dot-head reveal" data-peek>sound familiar?</h2>
+          <p class="closer reveal">if you nodded at any of these, that's a project. <a href="#contact">let's talk.</a></p>
+        </div>
+        <ol class="issues" data-stagger>
+          <li class="issue reveal"><span class="issue-id">#01</span><div><h3>The spreadsheet that runs your life.</h3><p>Someone updates it. Sometimes. Nobody trusts the totals.</p></div><span class="issue-state">open</span></li>
+          <li class="issue reveal"><span class="issue-id">#02</span><div><h3>The thing you do every single day.</h3><p>Copy, paste, forward, repeat. It takes an hour. It should take zero.</p></div><span class="issue-state">open</span></li>
+          <li class="issue reveal"><span class="issue-id">#03</span><div><h3>The app that almost works.</h3><p>You bent your whole business around a tool built for somebody else.</p></div><span class="issue-state">open</span></li>
+          <li class="issue reveal"><span class="issue-id">#04</span><div><h3>The idea you can't show.</h3><p>You know exactly what it should look like. Your customer can't see it yet.</p></div><span class="issue-state">open</span></li>
+          <li class="issue reveal"><span class="issue-id">#05</span><div><h3>The AI slop.</h3><p>Someone built it with AI over a weekend. It looked great in the demo. Now it breaks, makes things up, and nobody knows why.</p></div><span class="issue-state">open</span></li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ============ 03 · the big idea: ticker + editorial ============ -->
+    <section id="idea" class="idea">
+      <div class="ticker" aria-hidden="true">
+        <div class="ticker-track">
+          <span>whatever's broken</span><b>✦</b><span>whatever's slow</span><b>✦</b><span>whatever's impossible</span><b>✦</b><span>we build whatever fixes it</span><b>✦</b>
+          <span>whatever's broken</span><b>✦</b><span>whatever's slow</span><b>✦</b><span>whatever's impossible</span><b>✦</b><span>we build whatever fixes it</span><b>✦</b>
+        </div>
+      </div>
+      <div class="section idea-body">
+        <span class="ghost-word" aria-hidden="true">whatever</span>
+        <p class="eyebrow">// 03 — the big idea</p>
+        <h2 class="dot-head reveal" data-peek>why "whatever"?</h2>
+        <div class="prose two-col reveal">
+          <p>Because that's the brief. You bring whatever's broken, slow or impossible. We build whatever fixes it.</p>
+          <p>We don't sell a product and hope it fits. We don't have a niche, on purpose. A concierge business, a jewellery studio and a clinic all have different problems, so they should all get different tools.</p>
+          <p>Anything you can download, your competitor can download too. The stuff we build only exists for you.</p>
+          <p>And if you've already been burned by AI slop (the chatbot that invents answers, the app held together with tape, the images that look a little off), bring it to us. Cleaning that up is a big part of what we do.</p>
+        </div>
+        <blockquote class="pull-center reveal" data-peek>off-the-shelf is for shoes. not for your business.</blockquote>
+      </div>
+    </section>
+
+    <!-- ============ 04 · what we build: bento grid ============ -->
+    <section id="build" class="section">
+      <p class="eyebrow">// 04 — what we build</p>
+      <h2 class="dot-head reveal" data-peek>things we build (so far)</h2>
+      <p class="sub-head reveal">if it's not on this list, ask anyway. the list keeps growing.</p>
+      <div class="bento" data-stagger>
+        <article class="card tile tile-hero reveal"><span class="glyph-icon">{ ✗ → ✓ }</span><span class="num">01</span><h3>AI slop cleanup.</h3><p>Got something built with AI that doesn't really work? We find what's broken, keep what's good, and rebuild the rest so it holds up.</p></article>
+        <article class="card tile tile-wide reveal"><span class="glyph-icon">↻</span><span class="num">02</span><h3>Automations.</h3><p>The boring, repetitive stuff, gone. Messages that log themselves, data that moves itself, reports that write themselves.</p></article>
+        <article class="card tile reveal"><span class="glyph-icon">◉</span><span class="num">03</span><h3>AI tools.</h3><p>Custom AI that reads, sorts, categorises, generates and decides, trained on how your business works.</p></article>
+        <article class="card tile reveal"><span class="glyph-icon">▣</span><span class="num">04</span><h3>AI image &amp; video generation.</h3><p>Product shots, ads, concept visuals and short videos made with AI, without the uncanny, obviously-AI look.</p></article>
+        <article class="card tile tile-wide reveal"><span class="glyph-icon">▤</span><span class="num">05</span><h3>Dashboards &amp; internal tools.</h3><p>One screen that tells you what's actually going on. Built for your team, not for a SaaS company's roadmap.</p></article>
+        <article class="card tile tile-wide reveal"><span class="glyph-icon">✉</span><span class="num">06</span><h3>WhatsApp &amp; messaging bots.</h3><p>Your customers are already on WhatsApp. Your business should be too, even when you're asleep.</p></article>
+        <article class="card tile tile-full reveal"><span class="glyph-icon">&lt;/&gt;</span><span class="num">07</span><h3>Websites, apps &amp; custom software.</h3><p>Fast, good-looking, and plugged into everything above. If it's software, we can build it.</p></article>
+      </div>
+      <p class="closer reveal">most projects are a mix. that's the fun part.</p>
+    </section>
+
+    <!-- ============ 05 · work: alternating case studies with mock windows ============ -->
+    <section id="work" class="section">
+      <p class="eyebrow">// 05 — work</p>
+      <h2 class="dot-head reveal" data-peek>stuff we've shipped</h2>
+      <p class="sub-head reveal">we're new, so the list is short. every single thing on it is real.</p>
+
+      <article class="case reveal">
+        <div class="window case-visual" aria-hidden="true">
+          <div class="win-bar"><i></i><i></i><i></i><span>ledger — dashboard</span></div>
+          <div class="ledger">
+            <div class="ledger-feed">
+              <p><span class="sms">sms › payment received</span><span class="cat">income</span></p>
+              <p><span class="sms">sms › card spend</span><span class="cat">travel</span></p>
+              <p><span class="sms">sms › upi debit</span><span class="cat">vendors</span></p>
+              <p><span class="sms">sms › auto-debit</span><span class="cat">utilities</span></p>
+            </div>
+            <div class="bars">
+              <i style="--h:.55"></i><i style="--h:.8"></i><i style="--h:.4"></i><i style="--h:.7"></i><i style="--h:.95"></i><i style="--h:.6"></i><i style="--h:.85"></i>
+            </div>
+          </div>
+        </div>
+        <div class="case-text">
+          <span class="tag">AI finance automation · real estate concierge</span>
+          <h3>Ledger</h3>
+          <p class="one-liner">the accountant that never sleeps (and never invoices).</p>
+          <details>
+            <summary>see how it works →</summary>
+            <dl>
+              <dt>problem:</dt><dd>A luxury concierge business had money going out in every direction and no clear picture of where. Tracking it meant manual entries and an outside accountant.</dd>
+              <dt>built:</dt><dd>Ledger. Every payment SMS gets read by AI, sorted into the right category and logged into their accounts automatically. A live dashboard shows income, expenses and net worth at a glance. Premium members get their own dashboard showing exactly what their membership is giving back to them.</dd>
+              <dt>changed:</dt><dd>Their in-house team now runs the books themselves. They no longer needed an outside accountant.</dd>
+            </dl>
+          </details>
+        </div>
+      </article>
+
+      <article class="case flip reveal">
+        <div class="window case-visual" aria-hidden="true">
+          <div class="win-bar"><i></i><i></i><i></i><span>visualiser — sketch → render</span></div>
+          <div class="sketch-render">
+            <figure>
+              <svg viewBox="0 0 120 120"><g fill="none" stroke="#8a8d8c" stroke-width="1.5" stroke-dasharray="4 3"><ellipse cx="60" cy="72" rx="34" ry="30"/><ellipse cx="60" cy="72" rx="25" ry="21"/><path d="M48 44 L60 28 L72 44 Z"/></g></svg>
+              <figcaption>sketch.png</figcaption>
+            </figure>
+            <span class="arrow-mid">→</span>
+            <figure>
+              <svg viewBox="0 0 120 120"><defs><linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f4f4f0"/><stop offset=".5" stop-color="#8a8d8c"/><stop offset="1" stop-color="#d9d9d6"/></linearGradient></defs><ellipse cx="60" cy="72" rx="34" ry="30" fill="none" stroke="url(#gold)" stroke-width="9"/><path d="M48 44 L60 26 L72 44 Z" fill="#e9e9e5" stroke="#fff" stroke-width="1"/><circle cx="60" cy="38" r="2" fill="currentColor"/></svg>
+              <figcaption>render.png</figcaption>
+            </figure>
+          </div>
+        </div>
+        <div class="case-text">
+          <span class="tag">AI image tool · jewellery design</span>
+          <h3>Jewellery visualiser</h3>
+          <p class="one-liner">from pencil sketch to "i'll take it."</p>
+          <details>
+            <summary>see how it works →</summary>
+            <dl>
+              <dt>problem:</dt><dd>A jeweller was showing customers hand-drawn sketches of custom pieces. The designs were great. The sketches couldn't show how the finished piece would actually look, so customers hesitated.</dd>
+              <dt>built:</dt><dd>A tool that turns a design drawing into a realistic image of the finished jewellery piece, metal, stones, shine and all, before anything gets made.</dd>
+              <dt>changed:</dt><dd>Customers can see their piece before it exists. More enquiries turned into orders, and the business looks far more trustworthy for it.</dd>
+            </dl>
+          </details>
+        </div>
+      </article>
+
+      <a class="open-slot reveal" href="#contact" data-peek>
+        <span class="tag">your project here</span>
+        <span class="open-line">this spot's open. <em>what do you want built? →</em></span>
+      </a>
+    </section>
+
+    <!-- ============ 06 · how it works: horizontal timeline ============ -->
+    <section id="how" class="section">
+      <p class="eyebrow">// 06 — how it works</p>
+      <h2 class="dot-head reveal" data-peek>how it goes</h2>
+      <ol class="timeline reveal" data-stagger>
+        <li style="--i:0"><span class="node">01</span><h3>You tell us what's broken.</h3><p>One sentence in the form, or a voice note on WhatsApp. Rambling is fine. We speak fluent rant.</p></li>
+        <li style="--i:1"><span class="node">02</span><h3>We get on a call.</h3><p>We ask annoying questions until we understand your business better than your cousin who "does IT."</p></li>
+        <li style="--i:2"><span class="node">03</span><h3>We send you a plan and a price.</h3><p>What we'll build, how long it takes, what it costs. No surprises later.</p></li>
+        <li style="--i:3"><span class="node">04</span><h3>We build it.</h3><p>You see it working early and often. Hate something? We change it.</p></li>
+        <li style="--i:4"><span class="node">05</span><h3>It goes live, and we stick around.</h3><p>Launch is where it starts, not where we disappear.</p></li>
+      </ol>
+      <a class="btn primary reveal" href="#contact" data-peek>start with step 1 →</a>
+    </section>
+
+    <!-- ============ 07 · why wtv: big numbered rows + full-width band ============ -->
+    <section id="why" class="why">
+      <div class="section">
+        <p class="eyebrow">// 07 — why wtv</p>
+        <h2 class="dot-head wide-head reveal" data-peek>why work with a bunch of people called "whatever"?</h2>
+        <ol class="why-list" data-stagger>
+          <li class="reveal"><span class="big-num">01</span><h3>You talk to the people building it.</h3><p>No account managers, no telephone game. The founders are on your call and in your WhatsApp.</p></li>
+          <li class="reveal"><span class="big-num">02</span><h3>We ship fast.</h3><p>Small team, zero meetings about meetings. You see something working early, not a 40-page proposal.</p></li>
+          <li class="reveal"><span class="big-num">03</span><h3>We're weirdly good at weird problems.</h3><p>Turning sketches into product photos? Teaching an SMS to do accounting? Fixing the AI slop someone else left behind? That's our idea of fun.</p></li>
+          <li class="reveal"><span class="big-num">04</span><h3>Your budget, your scope.</h3><p>No fixed packages. We figure out what actually solves the problem and quote for that.</p></li>
+        </ol>
+      </div>
+      <div class="band reveal">
+        <p data-peek>honestly? the most cracked people you'll ever work with.</p>
+      </div>
+    </section>
+
+    <!-- ============ 08 · about: team as tabbed files ============ -->
+    <section id="about" class="section">
+      <div class="split">
+        <div class="sticky">
+          <p class="eyebrow">// 08 — about</p>
+          <h2 class="dot-head reveal" data-peek>who's behind this</h2>
+          <div class="prose reveal">
+            <p>WTV started in Bengaluru with a simple, slightly stupid idea: what if we just built whatever people needed?</p>
+            <p>Not a product. Not a template. Whatever.</p>
+            <p>We're a team that loves the problems other agencies quietly skip. We're based in Bengaluru, but we work from wherever the Wi-Fi is decent.</p>
+          </div>
+        </div>
+        <div class="window team reveal">
+          <div class="win-bar tabs" role="tablist" aria-label="team">
+            <button role="tab" id="tab-atharv" aria-controls="bio-atharv" aria-selected="true">atharv.md</button>
+            <button role="tab" id="tab-nihal" aria-controls="bio-nihal" aria-selected="false" tabindex="-1">nihal.md</button>
+            <button role="tab" id="tab-kalyaan" aria-controls="bio-kalyaan" aria-selected="false" tabindex="-1">kalyaan.md</button>
+          </div>
+          <div class="bio" role="tabpanel" id="bio-atharv" aria-labelledby="tab-atharv">
+            <span class="avatar" aria-hidden="true">A</span>
+            <h3>Atharv</h3><p class="role">Founder</p>
+            <p>Started as the tech guy. Computer science at PES with an AI &amp; ML specialisation, an internship at Toddle, freelance gigs, and a lot of front ends, back ends and AI tools. Somewhere along the way he got scarily good at knowing people, then fell in love with talking to them. WTV's contact list is mostly his phone. He still speaks fluent tech, which is why your first call with him actually goes somewhere.</p>
+          </div>
+          <div class="bio" role="tabpanel" id="bio-nihal" aria-labelledby="tab-nihal" hidden>
+            <span class="avatar" aria-hidden="true">N</span>
+            <h3>Nihal</h3><p class="role">Co-founder</p>
+            <!-- TODO(copy): Nihal's bio isn't written yet -->
+            <p class="pending">bio coming soon.</p>
+          </div>
+          <div class="bio" role="tabpanel" id="bio-kalyaan" aria-labelledby="tab-kalyaan" hidden>
+            <span class="avatar" aria-hidden="true">K</span>
+            <h3>Kalyaan</h3><p class="role">Lead Engineer</p>
+            <p>Computer science grad from PES and WTV's tech lead. Ex-Toddle, where he lived in back ends and databases: the stuff nobody sees and everything breaks without. If your tool has to handle real data without falling over, that's his part. Occasionally sleeps.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 09 · faq: a REPL ============ -->
+    <section id="faq" class="section">
+      <div class="split">
+        <div class="sticky">
+          <p class="eyebrow">// 09 — faq</p>
+          <h2 class="dot-head reveal" data-peek>questions people actually ask</h2>
+        </div>
+        <div class="window repl reveal">
+          <div class="win-bar"><i></i><i></i><i></i><span>faq — repl</span></div>
+          <div class="faq" data-stagger>
+            <details><summary>How much does it cost?</summary><p>Depends entirely on the problem. A simple automation and a full custom platform are very different builds. Tell us what you need and we'll send a clear quote after the call.</p></details>
+            <details><summary>How long does it take?</summary><p>Small automations can be live in days. Bigger tools take a few weeks. You'll get a real timeline in the plan before anything starts.</p></details>
+            <details><summary>I'm not technical. Is that a problem?</summary><p>That's literally why we exist. Explain it like you'd explain it to a friend. Translating it into tech is our job.</p></details>
+            <details><summary>Do you only work with businesses in Bengaluru?</summary><p>Nope. We're Bengaluru-based but fully remote. If you have WhatsApp and a problem, we can work together.</p></details>
+            <details><summary>What if what I need doesn't exist yet?</summary><p>Even better. That's the whole point of custom.</p></details>
+            <details><summary>Someone already built us something with AI and it's a mess. Can you fix it?</summary><p>Yes, and we kind of love this one. We figure out what's actually broken, keep what works, and rebuild the rest properly. No judgement about how it got that way.</p></details>
+            <!-- TODO(copy): confirm code, data and accounts are all handed over -->
+            <details><summary>Who owns the thing you build?</summary><p>You do.</p></details>
+            <!-- TODO(copy): add support period / monthly retainer specifics -->
+            <details><summary>What happens after launch?</summary><p>We stick around for fixes and changes.</p></details>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 10 · contact: the form as a window, with a glow ============ -->
+    <section id="contact" class="section contact">
+      <div class="contact-head">
+        <p class="eyebrow">// 10 — contact</p>
+        <h2 class="dot-head reveal" data-peek>so, what do you want built?</h2>
+        <p class="sub-head reveal">four fields. thirty seconds. then we take it from here.</p>
+      </div>
+      <div class="window form-window reveal">
+        <div class="win-bar"><i></i><i></i><i></i><span>new_project.form</span></div>
+        <form class="form" novalidate>
+          <label><span>your name</span><input name="name" type="text" placeholder="what should we call you?" autocomplete="name" required></label>
+          <label><span>phone (whatsapp, ideally)</span><input name="phone" type="tel" placeholder="+91" autocomplete="tel"></label>
+          <label class="wide"><span>email</span><input name="email" type="email" placeholder="you@yourbusiness.com" autocomplete="email"></label>
+          <label class="wide"><span>the problem, in one sentence</span><textarea name="problem" rows="3" placeholder='e.g. "we track every order on paper and lose half of them"' required></textarea></label>
+          <div class="form-foot wide">
+            <button class="btn primary" type="submit" data-peek>send it</button>
+            <p class="fine">or skip the form → <a href="#contact">book a call</a> · <a class="whatsapp-link" href="#contact">whatsapp us</a></p>
+          </div>
+          <p class="form-msg wide" role="status" aria-live="polite"></p>
+        </form>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div>
+        <p class="footer-logo">wtv — short for whatever.</p>
+        <p>built in bengaluru. works from anywhere.</p>
+      </div>
+      <!-- TODO(links): real email / whatsapp / instagram / linkedin -->
+      <nav class="footer-links">
+        <a href="#">email</a><a class="whatsapp-link" href="#">whatsapp</a><a href="#">instagram</a><a href="#">linkedin</a>
+      </nav>
     </div>
-  </section>
+    <p class="legal">© 2026 WTV. all rights reserved, most problems solved.</p>
+    <p class="wordmark" aria-hidden="true">whatever.</p>
+  </footer>
 
   <script src="main.js"></script>
 </body>

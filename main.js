@@ -289,7 +289,7 @@ const hero = document.getElementById("hero");
 const stage = hero.querySelector(".stage");
 const $ = sel => stage.querySelector(sel);
 const internals = $(".internals"), shade = $(".shade"), frame = $(".frame"), glass = $(".glass");
-const glyphs = $(".glyphs"), nav = $(".nav"), plate = $(".plate"), hint = $(".hint");
+const glyphs = $(".glyphs"), nav = $(".nav"), plate = $(".plate"), hint = $(".hint"), fadeOut = $(".fade-out");
 const [cLow, cLive, cHigh] = internals.querySelectorAll("canvas");
 const live = cLive.getContext("2d");
 const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -412,6 +412,9 @@ function apply(p) {
   plate.style.opacity = Math.max(0, 1 - a * 1.2);
   plate.style.transform = `translate3d(0, ${-48 * a}px, 0)`;
   hint.style.opacity = Math.max(0, .8 - a * 2);
+  // solid black by 88% of the way, so the hero is fully gone before it starts to
+  // scroll off (the smoothed progress lags the real scroll a touch)
+  fadeOut.style.opacity = ease(range(p, .5, .88));
 }
 
 function tick() {
@@ -429,12 +432,16 @@ function onScroll() {
 }
 addEventListener("scroll", onScroll, { passive: true });
 
-let resizeTimer;
-addEventListener("resize", () => {
-  onScroll();
-  clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(layout, 120);
-});
+addEventListener("resize", onScroll);
+
+// re-render the canvases whenever the board's box changes size (window resize,
+// a tab that opened tiny in the background, mobile toolbars...), once per frame
+let layoutQueued = false;
+new ResizeObserver(() => {
+  if (layoutQueued) return;
+  layoutQueued = true;
+  requestAnimationFrame(() => { layoutQueued = false; layout(); });
+}).observe(internals);
 
 let pointerQueued = false;
 addEventListener("pointermove", e => {
@@ -466,16 +473,20 @@ const peek = document.createElement("div");
 peek.className = "peek";
 document.body.appendChild(peek);
 
+// classes and styles that only exist for animation, hidden from the "source"
+const NOISE = ["broken", "reveal", "in"];
+
 function sourceOf(node) {
   const clone = node.cloneNode(true);
   clone.removeAttribute("data-peek");
-  clone.classList.remove("broken");
+  clone.removeAttribute("style");
+  clone.classList.remove(...NOISE);
   if (!clone.classList.length) clone.removeAttribute("class");
   return clone.outerHTML;
 }
 
 function selectorOf(node) {
-  const cls = [...node.classList].filter(c => c !== "broken");
+  const cls = [...node.classList].filter(c => !NOISE.includes(c));
   return node.tagName.toLowerCase() + (cls.length ? "." + cls.join(".") : "");
 }
 
@@ -498,3 +509,772 @@ document.querySelectorAll("[data-peek]").forEach(node => {
     peek.classList.remove("on");
   });
 });
+
+/* ================= the rest of the page ================= */
+// the top bar takes over from the hero nav once the glass has lifted
+const topbar = document.querySelector(".topbar");
+const toggleTopbar = () => topbar.classList.toggle("on", hero.getBoundingClientRect().bottom < innerHeight * .5);
+addEventListener("scroll", toggleTopbar, { passive: true });
+toggleTopbar();
+
+// sections fade up as they arrive (cards in a grid stagger slightly)
+const reveals = document.querySelectorAll(".reveal");
+if ("IntersectionObserver" in window && !reduced) {
+  document.querySelectorAll("[data-stagger]").forEach(group =>
+    [...group.querySelectorAll(".reveal")].forEach((el, i) => (el.style.transitionDelay = `${(i % 6) * 60}ms`)));
+  const io = new IntersectionObserver(entries => entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    e.target.classList.add("in");
+    io.unobserve(e.target);
+  }), { rootMargin: "0px 0px -8% 0px" });
+  reveals.forEach(el => io.observe(el));
+} else {
+  reveals.forEach(el => el.classList.add("in"));
+}
+
+// TODO(contact): real WhatsApp number, digits only with country code (e.g. "9198XXXXXXXX").
+// left empty, wa.me opens WhatsApp with the message ready and lets them pick a chat.
+const WHATSAPP_NUMBER = "";
+const WHATSAPP_TEXT = "hey WTV, i've got a problem i want solved: ";
+document.querySelectorAll(".whatsapp-link").forEach(a => {
+  a.href = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_TEXT)}`;
+  a.target = "_blank";
+  a.rel = "noopener";
+});
+
+// contact form. TODO(backend): actually send the submission — for now it only validates.
+const form = document.querySelector(".form");
+const formMsg = form.querySelector(".form-msg");
+const FORM_OK = "got it. we'll reach out within 24 hours. go do something fun in the meantime.";
+const FORM_ERR = "something broke, and not in the cool way. try again, or just whatsapp us."; // for when sending fails
+form.addEventListener("submit", e => {
+  e.preventDefault();
+  const f = form.elements;
+  const reachable = f.phone.value.trim() || f.email.value.trim();
+  const checks = [[f.name, f.name.value.trim()], [f.problem, f.problem.value.trim()], [f.phone, reachable], [f.email, reachable]];
+  checks.forEach(([el, ok]) => el.setAttribute("aria-invalid", ok ? "false" : "true"));
+  if (checks.some(([, ok]) => !ok)) {
+    formMsg.className = "form-msg wide err";
+    formMsg.textContent = "we just need your name, the problem, and a phone or email.";
+    return;
+  }
+  formMsg.className = "form-msg wide ok";
+  formMsg.textContent = FORM_OK;
+  form.reset();
+});
+
+// team "files": arrow keys + click switch tabs
+const tabs = [...document.querySelectorAll('.team [role="tab"]')];
+const selectTab = tab => tabs.forEach(t => {
+  const on = t === tab;
+  t.setAttribute("aria-selected", on);
+  t.tabIndex = on ? 0 : -1;
+  document.getElementById(t.getAttribute("aria-controls")).hidden = !on;
+});
+tabs.forEach((t, i) => {
+  t.addEventListener("click", () => selectTab(t));
+  t.addEventListener("keydown", e => {
+    const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+    if (!step) return;
+    const next = tabs[(i + step + tabs.length) % tabs.length];
+    selectTab(next);
+    next.focus();
+  });
+});
+
+// a different faint, code-themed backdrop for every section. each is an SVG tile,
+// generated once and used as a CSS mask, so the section paints it in its own colour
+// (see .content > section::after). nothing here animates.
+(function backdrops() {
+  let s = 11;
+  const r = () => ((s = (s * 16807) % 2147483647) - 1) / 2147483646;
+  const pick = a => a[Math.floor(r() * a.length)];
+  const x = str => str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const MONO = `font-family="Consolas, 'JetBrains Mono', monospace"`;
+  // any words in a backdrop are dimmed so they stay texture, not something to read
+  const tile = (w, h, body) => ({ w, h, svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" stroke="#000" fill="#000">${body.replace(/<text /g, '<text opacity=".45" ')}</svg>` });
+
+  const P = {
+    // 01 · binary rain: columns of 0/1 with a bright head and a fading tail
+    intro() {
+      const out = [];
+      for (let cx = 12; cx < 600; cx += 48) {
+        let y = -Math.round(r() * 300);
+        while (y < 640) {
+          const len = 6 + Math.floor(r() * 14);
+          for (let k = 0; k < len; k++, y += 18) {
+            if (y < 0 || y > 600) continue;
+            const a = (k === len - 1 ? 1 : .2 + .6 * k / len).toFixed(2);
+            out.push(`<text x="${cx}" y="${y}" font-size="14" fill-opacity="${a}" stroke="none" ${MONO}>${r() < .5 ? 0 : 1}</text>`);
+          }
+          y += 40 + Math.round(r() * 160);
+        }
+      }
+      return tile(600, 600, out.join(""));
+    },
+
+    // 02 · a stack trace / error log
+    problem() {
+      const lines = [
+        "TypeError: Cannot read properties of undefined (reading 'total')",
+        "    at sumColumn (spreadsheet.js:42:17)",
+        "    at Array.map (<anonymous>)",
+        "    at copyPasteForward (daily.js:7:3)",
+        "Warning: this step is done by hand. again.",
+        "    at almostWorks (app-built-for-someone-else.js:118:9)",
+        "Error: totals don't match (expected 48,210, got ¯\\_(ツ)_/¯)",
+        "    at ai_slop.generate (weekend-build.js:1:1)",
+        "UnhandledPromiseRejection: the demo worked though",
+        "    at Object.<anonymous> (idea-you-cant-show.js:0:0)",
+      ];
+      const out = [];
+      for (let i = 0, y = 26; y < 620; i++, y += 52) {
+        out.push(`<text x="24" y="${y}" font-size="13" fill-opacity="${i % 3 ? .55 : 1}" stroke="none" ${MONO}>${x(lines[i % lines.length])}</text>`);
+      }
+      return tile(1000, 624, out.join(""));
+    },
+
+    // 03 · a hex dump: address, 16 bytes, then the readable text. the bytes spell
+    // out the section's own line, so the right-hand column is a little easter egg.
+    idea() {
+      const msg = "whatever's broken, slow or impossible. we build whatever fixes it. ";
+      const bytes = [...msg].map(ch => ch.charCodeAt(0));
+      const hex = n => n.toString(16).padStart(2, "0");
+      const out = [];
+      for (let row = 0, y = 30; y < 620; row++, y += 40) {
+        const chunk = Array.from({ length: 16 }, (_, k) => bytes[(row * 16 + k) % bytes.length]);
+        const left = chunk.slice(0, 8).map(hex).join(" "), right = chunk.slice(8).map(hex).join(" ");
+        const ascii = chunk.map(b => String.fromCharCode(b)).join("");
+        out.push(`<text x="24" y="${y}" font-size="13" stroke="none" fill-opacity=".45" ${MONO}>${(0x7f3a00 + row * 16).toString(16).padStart(8, "0")}</text>`);
+        out.push(`<text x="128" y="${y}" font-size="13" stroke="none" fill-opacity=".8" ${MONO}>${left}  ${right}</text>`);
+        out.push(`<text x="540" y="${y}" font-size="13" stroke="none" ${MONO}>|${x(ascii)}|</text>`);
+      }
+      return tile(900, 640, out.join(""));
+    },
+
+    // 04 · circuit traces
+    build() {
+      const T = 900, out = [];
+      for (let i = 0; i < 13; i++) {
+        let px = 40 + Math.round(r() * 82) * 10, py = 40 + Math.round(r() * 82) * 10;
+        let dir = Math.floor(r() * 4) * 2, d = `M${px} ${py}`;
+        out.push(`<circle cx="${px}" cy="${py}" r="4" fill="none" stroke-width="2"/>`);
+        for (let k = 0; k < 3; k++) {
+          const len = 50 + r() * 160, a = dir * Math.PI / 4;
+          px = Math.min(T - 30, Math.max(30, Math.round(px + Math.cos(a) * len)));
+          py = Math.min(T - 30, Math.max(30, Math.round(py + Math.sin(a) * len)));
+          d += ` L${px} ${py}`;
+          dir = (dir + (r() < .5 ? 1 : 7)) % 8;
+        }
+        out.push(`<path d="${d}" fill="none" stroke-width="2" stroke-linejoin="round"/>`);
+        out.push(`<circle cx="${px}" cy="${py}" r="3.5"/>`);
+      }
+      for (let i = 0; i < 2; i++) {
+        const cx = 60 + Math.round(r() * 70) * 10, cy = 60 + Math.round(r() * 70) * 10, w = 60 + Math.round(r() * 6) * 10, h = 40 + Math.round(r() * 4) * 10;
+        out.push(`<rect x="${cx}" y="${cy}" width="${w}" height="${h}" rx="4" fill="none" stroke-width="2"/>`);
+        for (let p = cx + 8; p < cx + w - 4; p += 10) out.push(`<path d="M${p} ${cy} v-7 M${p} ${cy + h} v7" stroke-width="2"/>`);
+      }
+      return tile(T, T, out.join(""));
+    },
+
+    // 05 · website wireframes
+    work() {
+      const out = [];
+      const win = (wx, wy, w, h) => {
+        out.push(`<rect x="${wx}" y="${wy}" width="${w}" height="${h}" rx="8" fill="none" stroke-width="1.5"/>`);
+        out.push(`<path d="M${wx} ${wy + 22} H${wx + w}" stroke-width="1.5"/>`);
+        [0, 1, 2].forEach(i => out.push(`<circle cx="${wx + 14 + i * 12}" cy="${wy + 11}" r="3" fill="none" stroke-width="1.5"/>`));
+        const ix = wx + 16, iw = w - 32;
+        out.push(`<rect x="${ix}" y="${wy + 38}" width="${iw * .45}" height="10" rx="3" stroke="none"/>`);
+        out.push(`<rect x="${ix}" y="${wy + 56}" width="${iw * .7}" height="6" rx="3" stroke="none" fill-opacity=".5"/>`);
+        const imgW = iw * .42, imgH = h - 110;
+        if (imgH > 30) {
+          out.push(`<rect x="${ix}" y="${wy + 76}" width="${imgW}" height="${imgH}" rx="4" fill="none" stroke-width="1.5"/>`);
+          out.push(`<path d="M${ix} ${wy + 76} L${ix + imgW} ${wy + 76 + imgH} M${ix + imgW} ${wy + 76} L${ix} ${wy + 76 + imgH}" stroke-width="1" stroke-opacity=".6"/>`);
+          for (let ly = wy + 80; ly < wy + 76 + imgH; ly += 14) out.push(`<rect x="${ix + imgW + 14}" y="${ly}" width="${(iw - imgW - 14) * (.5 + r() * .5)}" height="5" rx="2.5" stroke="none" fill-opacity=".45"/>`);
+        }
+        out.push(`<rect x="${ix}" y="${wy + h - 26}" width="70" height="14" rx="7" fill="none" stroke-width="1.5"/>`);
+      };
+      win(30, 30, 380, 250); win(400, 300, 380, 280);
+      return tile(820, 620, out.join(""));
+    },
+
+    // 06 · git commit graph
+    how() {
+      const out = [], lanes = [];
+      for (let lx = 40; lx < 720; lx += 180) lanes.push(lx);
+      lanes.forEach(lx => {
+        out.push(`<path d="M${lx} 0 V800" stroke-width="2" stroke-opacity=".7"/>`);
+        for (let cy = 30 + Math.round(r() * 40); cy < 800; cy += 60 + Math.round(r() * 70)) {
+          out.push(`<circle cx="${lx}" cy="${cy}" r="6" fill="none" stroke-width="2"/>`);
+          if (r() < .45) out.push(`<text x="${lx + 14}" y="${cy + 4}" font-size="11" stroke="none" fill-opacity=".7" ${MONO}>${Math.floor(r() * 0xfffffff).toString(16).padStart(7, "0")}</text>`);
+        }
+      });
+      for (let i = 0; i < 4; i++) { // merges and branch-offs between neighbouring lanes
+        const k = Math.floor(r() * (lanes.length - 1)), y1 = 60 + Math.round(r() * 640), dir = r() < .5 ? 1 : -1;
+        const a = lanes[k + (dir < 0 ? 1 : 0)], b = lanes[k + (dir < 0 ? 0 : 1)];
+        out.push(`<path d="M${a} ${y1} C${a} ${y1 + 40} ${b} ${y1 + 30} ${b} ${y1 + 70}" fill="none" stroke-width="2"/>`);
+      }
+      return tile(720, 800, out.join(""));
+    },
+
+    // 07 · terminal windows
+    why() {
+      const cmds = [["$ npm run build", "> compiled in 1.2s"], ["$ git push origin main", "> main -> main"], ["$ wtv deploy --prod", "✓ live"], ["$ whoami", "> whatever"], ["$ make it-work", "✓ done"], ["$ sudo fix ai-slop", "✓ 0 hallucinations"]];
+      const out = [];
+      const term = (tx, ty, w, lines) => {
+        const h = 40 + lines * 44;
+        out.push(`<rect x="${tx}" y="${ty}" width="${w}" height="${h}" rx="8" fill="none" stroke-width="1.5"/>`);
+        out.push(`<path d="M${tx} ${ty + 22} H${tx + w}" stroke-width="1.5"/>`);
+        [0, 1, 2].forEach(i => out.push(`<circle cx="${tx + 14 + i * 12}" cy="${ty + 11}" r="3" stroke="none" fill-opacity=".6"/>`));
+        let ly = ty + 44;
+        for (let i = 0; i < lines; i++) {
+          const [c, o] = pick(cmds);
+          out.push(`<text x="${tx + 14}" y="${ly}" font-size="13" stroke="none" ${MONO}>${x(c)}</text>`);
+          out.push(`<text x="${tx + 14}" y="${ly + 20}" font-size="13" stroke="none" fill-opacity=".5" ${MONO}>${x(o)}</text>`);
+          ly += 44;
+        }
+        out.push(`<text x="${tx + 14}" y="${ly}" font-size="13" stroke="none" ${MONO}>$</text><rect x="${tx + 28}" y="${ly - 11}" width="8" height="14" stroke="none"/>`);
+      };
+      term(30, 30, 330, 3); term(470, 300, 330, 3);
+      return tile(840, 560, out.join(""));
+    },
+
+    // 08 · network mesh of nodes
+    about() {
+      const pts = [], out = [];
+      for (let i = 0; i < 17; i++) pts.push([30 + r() * 700, 30 + r() * 700]);
+      pts.forEach((p, i) => {
+        pts.map((q, j) => [Math.hypot(p[0] - q[0], p[1] - q[1]), j]).filter(([, j]) => j !== i)
+          .sort((a, b) => a[0] - b[0]).slice(0, 3)
+          .forEach(([dist, j]) => { if (j > i || dist > 140) out.push(`<path d="M${p[0] | 0} ${p[1] | 0} L${pts[j][0] | 0} ${pts[j][1] | 0}" stroke-width="1.2" stroke-opacity=".7"/>`); });
+      });
+      pts.forEach(([px, py]) => {
+        const big = r() < .25;
+        out.push(`<circle cx="${px | 0}" cy="${py | 0}" r="${big ? 7 : 3.5}" ${big ? 'fill="none" stroke-width="2"' : 'stroke="none"'}/>`);
+      });
+      return tile(760, 760, out.join(""));
+    },
+
+    // 09 · a code minimap
+    faq() {
+      const out = [];
+      [24].forEach(colX => {
+        let indent = 0;
+        for (let y = 20; y < 600; y += 9) {
+          if (r() < .12) continue; // blank line
+          indent = Math.max(0, Math.min(5, indent + (r() < .3 ? 1 : 0) - (r() < .3 ? 1 : 0)));
+          const w = 30 + r() * 230, cx = colX + indent * 14;
+          const split = r() < .5 ? w * (.2 + r() * .3) : 0;
+          if (split) {
+            out.push(`<rect x="${cx | 0}" y="${y}" width="${split | 0}" height="4" rx="2" stroke="none"/>`);
+            out.push(`<rect x="${(cx + split + 6) | 0}" y="${y}" width="${(w - split) | 0}" height="4" rx="2" stroke="none" fill-opacity=".5"/>`);
+          } else out.push(`<rect x="${cx | 0}" y="${y}" width="${w | 0}" height="4" rx="2" stroke="none" fill-opacity=".75"/>`);
+        }
+      });
+      return tile(800, 600, out.join(""));
+    },
+
+    // 10 · keyboard keycaps
+    contact() {
+      const out = [], keys = ["W", "T", "V", "⌘", "↵", "⌥", "⇧", "{", "}", ";", "esc", "tab", "/", "$", "~", "0", "1"];
+      const rowOff = [0, 26, 40, 66];
+      for (let row = 0; row < 4; row += 2) {
+        for (let k = 0, kx = 20 + rowOff[row]; kx < 860; k++, kx += 62) {
+          const ky = 20 + row * 62;
+          out.push(`<rect x="${kx}" y="${ky}" width="52" height="52" rx="9" fill="none" stroke-width="1.5"/>`);
+          out.push(`<rect x="${kx + 6}" y="${ky + 5}" width="40" height="36" rx="6" fill="none" stroke-width="1" stroke-opacity=".5"/>`);
+          if (r() < .35) out.push(`<text x="${kx + 12}" y="${ky + 26}" font-size="13" stroke="none" ${MONO}>${x(pick(keys))}</text>`);
+        }
+      }
+      return tile(880, 340, out.join(""));
+    },
+  };
+
+  for (const [id, make] of Object.entries(P)) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    const { w, h, svg } = make();
+    el.style.setProperty("--pattern", `url("data:image/svg+xml,${encodeURIComponent(svg)}")`);
+    el.style.setProperty("--pattern-size", `${w}px ${h}px`);
+  }
+})();
+
+// circuits that hug one corner of each section's content: an L-shaped trace down a
+// side margin that turns along the top or bottom, plus one short trace in from the
+// screen edge. the corner rotates section to section. they're still (no pulses), so
+// the single fixed canvas is only redrawn when you scroll or resize.
+(function sectionCircuits() {
+  const content = document.querySelector(".content");
+  const canvas = document.createElement("canvas");
+  canvas.className = "circuit-canvas";
+  canvas.setAttribute("aria-hidden", "true");
+  content.prepend(canvas);
+  const ctx = canvas.getContext("2d");
+  const sections = [...content.querySelectorAll(":scope > section")];
+  // top-left, top-right, bottom-right, bottom-left, then round again
+  const CORNERS = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+  let boards = [], cdpr = 1;
+
+  // the box the section's text and cards actually occupy, in page coordinates
+  function contentBox(sec) {
+    const host = sec.matches(".section") ? sec : sec.querySelector(".section");
+    let l = Infinity, t = Infinity, r = -Infinity, b = -Infinity;
+    for (const k of host.children) {
+      if (getComputedStyle(k).position === "absolute") continue;
+      const rc = k.getBoundingClientRect();
+      if (!rc.width || !rc.height) continue;
+      l = Math.min(l, rc.left); r = Math.max(r, rc.right);
+      t = Math.min(t, rc.top + scrollY); b = Math.max(b, rc.bottom + scrollY);
+    }
+    return { l, t, r, b };
+  }
+
+  function build(sec, idx) {
+    let s = 977 + idx * 7919;
+    const rnd = () => ((s = (s * 16807) % 2147483647) - 1) / 2147483646;
+    const W = document.documentElement.clientWidth;
+    const top = sec.getBoundingClientRect().top + scrollY, H = sec.offsetHeight;
+    const c = contentBox(sec);
+    const box = { l: c.l, r: c.r, t: c.t - top, b: c.b - top };
+    const color = getComputedStyle(sec).getPropertyValue("--sec").trim() || "#2bff72";
+    const [sx, sy] = CORNERS[idx % CORNERS.length]; // which side (x) and which edge (y)
+    const traces = [], pad = 26;
+    const add = pts => traces.push(pts.map(([x, y]) => [Math.round(x), Math.round(y)]));
+
+    const gap = sx < 0 ? box.l : W - box.r;           // width of that side margin
+    const w = box.r - box.l, h = box.b - box.t;
+    const yEdge = sy < 0 ? Math.max(14, box.t - 34) : Math.min(H - 14, box.b + 34);
+    const xFar = sx < 0 ? box.l + w * (.55 + rnd() * .25) : box.r - w * (.55 + rnd() * .25);
+
+    if (gap >= 90) {
+      // the L: down the margin, a 45° turn at the corner, then along the content edge
+      const vx = sx < 0 ? gap * (.35 + rnd() * .2) : W - gap * (.35 + rnd() * .2);
+      const yStart = sy < 0 ? box.t + h * (.55 + rnd() * .25) : box.t + h * (.2 + rnd() * .25);
+      const turn = 30;
+      add([[vx, yStart], [vx, yEdge - sy * turn], [vx - sx * turn, yEdge], [xFar, yEdge]]);
+      // one short trace in from the screen edge, stopping just short of the content
+      const y0 = sy < 0 ? box.t + h * (.2 + rnd() * .15) : box.b - h * (.2 + rnd() * .15);
+      const edge = sx < 0 ? 0 : W, inner = sx < 0 ? box.l - pad : box.r + pad;
+      const x1 = edge - sx * gap * (.15 + rnd() * .15);
+      const jog = -sy * (22 + rnd() * 30);
+      add([[edge, y0], [x1, y0], [x1 - sx * Math.abs(jog), y0 + jog], [inner, y0 + jog]]);
+    } else {
+      // no room at the sides (tablets, phones): just the run along the content edge
+      add([[sx < 0 ? box.l - 20 : box.r + 20, yEdge], [xFar, yEdge]]);
+    }
+    return { top, h: H, color, traces };
+  }
+
+  const line = pts => { ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke(); };
+
+  function draw() {
+    const vh = innerHeight, y = scrollY;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.lineWidth = 1.5;
+    ctx.globalAlpha = .32;
+    for (const bd of boards) {
+      if (bd.top - y >= vh || bd.top + bd.h - y <= 0) continue;
+      ctx.setTransform(cdpr, 0, 0, cdpr, 0, cdpr * (bd.top - y));
+      ctx.strokeStyle = ctx.fillStyle = bd.color;
+      for (const pts of bd.traces) {
+        line(pts);
+        const [ax, ay] = pts[0], [ex, ey] = pts[pts.length - 1];
+        ctx.beginPath(); ctx.arc(ax, ay, 3.5, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(ex, ey, 3, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function layout() {
+    cdpr = Math.min(devicePixelRatio || 1, 1.5);
+    canvas.width = Math.round(innerWidth * cdpr);
+    canvas.height = Math.round(innerHeight * cdpr);
+    boards = sections.map(build);
+    draw();
+  }
+
+  let drawQueued = false;
+  addEventListener("scroll", () => {
+    if (drawQueued) return;
+    drawQueued = true;
+    requestAnimationFrame(() => { drawQueued = false; draw(); });
+  }, { passive: true });
+
+  let layoutQueued = false;
+  new ResizeObserver(() => {
+    if (layoutQueued) return;
+    layoutQueued = true;
+    requestAnimationFrame(() => { layoutQueued = false; layout(); });
+  }).observe(content);
+  if (document.fonts) document.fonts.ready.then(layout);
+  layout();
+})();
+
+/* ================= the monster =================
+   a little pixel monster that lives on one edge of the screen in every section
+   (feet on the edge, so on the side walls it walks sideways). each section picks
+   the edge with free space — the side margin away from that section's circuits,
+   or the top/bottom when there's no margin — and never the same edge twice in a
+   row, so scrolling into the next section makes it leap across. hidden over the hero. */
+(function monster() {
+  // ten monsters, one per section. 16 wide, 11 rows of body + 2 rows of legs.
+  // X = body (section colour), W = white, K = near-black. `eyes` lists the rows to
+  // close when it blinks; `legs` are the two walking poses.
+  const L1 = ["....XX....XX....", "...XX......XX..."], L2 = ["....XX....XX....", ".....XX..XX....."];
+  const DESIGNS = [
+    { name: "horned", eyes: [4, 5], legs: [L1, L2], body: [
+      "................", "....X......X....", "....XX....XX....", "....XXXXXXXX....", "...XXXXXXXXXX...", "..XXWWXXXXWWXX..",
+      "..XXWKXXXXWKXX..", "..XXXXXXXXXXXX..", ".XXXXXXXXXXXXXX.", ".X.XXKWKKWKXX.X.", "...XXXXXXXXXX..."] },
+    { name: "cyclops", eyes: [3, 4, 5], legs: [L1, L2], body: [
+      ".......X........", "......XXX.......", "....XXXXXXXX....", "...XXXWWWWXXX...", "..XXXWWKKWWXXX..", "..XXXXWWWWXXXX..",
+      "..XXXXXXXXXXXX..", ".XXXXXXXXXXXXXX.", ".X.XXXKKKKXXX.X.", "...XXXXXXXXXX...", "....XXXXXXXX...."] },
+    { name: "ghost", eyes: [4, 5], legs: [["...XXXXXXXXXX...", "...X.XX.XX.XX..."], ["...XXXXXXXXXX...", "....XX.XX.XX.X.."]], body: [
+      "................", ".....XXXXXX.....", "....XXXXXXXX....", "...XXXXXXXXXX...", "...XWWXXXXWWX...", "...XWKXXXXWKX...",
+      "...XXXXXXXXXX...", "...XXXXKKXXXX...", "...XXXXXXXXXX...", "...XXXXXXXXXX...", "...XXXXXXXXXX..."] },
+    { name: "invader", eyes: [], legs: [[".....XX..XX.....", "................"], ["...XX......XX...", "................"]], body: [
+      "................", "................", "................", "................", "....X......X....", ".....X....X.....",
+      "....XXXXXXXX....", "...XX.XXXX.XX...", "..XXXXXXXXXXXX..", "..X.XXXXXXXX.X..", "..X.X......X.X.."] },
+    { name: "slime", eyes: [5, 6], legs: [["XXXXXXXXXXXXXXXX", ".XX..XX..XX..XX."], ["XXXXXXXXXXXXXXXX", "..XX..XX..XX..X."]], body: [
+      "................", "................", "................", "......XXXX......", "....XXXXXXXX....", "...XXWWXXWWXX...",
+      "..XXXWKXXWKXXX..", "..XXXXXXXXXXXX..", ".XXXXXKKKKXXXXX.", ".XXXXXXXXXXXXXX.", "XXXXXXXXXXXXXXXX"] },
+    { name: "bat", eyes: [5, 6], legs: [["......X..X......", "................"], [".....X....X.....", "................"]], body: [
+      "................", "................", ".....X....X.....", ".....XXXXXX.....", "X...XXXXXXXX...X", "XX..XWWXXWWX..XX",
+      "XXX.XWKXXWKX.XXX", "XXXXXXXXXXXXXXXX", ".XXXXXKKKKXXXXX.", "..X.XXXXXXXX.X..", ".....XXXXXX....."] },
+    { name: "robot", eyes: [3, 4], legs: [["....XX....XX....", "....XX....XX...."], ["....XX....XX....", "...XXX....XXX..."]], body: [
+      ".......X........", "......XXX.......", "...XXXXXXXXXX...", "...XWWXXXXWWX...", "...XWKXXXXWKX...", "...XXXXXXXXXX...",
+      "...XKWKWKWKWX...", "...XXXXXXXXXX...", ".XXXXXXXXXXXXXX.", ".X.XXXXXXXXXX.X.", "...XXXXXXXXXX..."] },
+    { name: "spiky", eyes: [4, 5], legs: [["....XX...XX.....", "...XX.....XX...."], ["....XX...XX.....", ".....XX.XX......"]], body: [
+      "................", "..X..X..X..X....", "...XXXXXXXXX.X..", "..XXXXXXXXXXX...", ".XXXWWXXXXWWXX..", "XXXXWKXXXXWKXXX.",
+      ".XXXXXXXXXXXXX..", "XXXXXXKKKKXXXXX.", ".XXXXXXXXXXXXX..", "..XXXXXXXXXXX...", "...XXXXXXXXX...."] },
+    { name: "squid", eyes: [5, 6], legs: [["...X.X.XX.X.X...", "..X..X....X..X.."], ["...X.X.XX.X.X...", "....X.X..X.X...."]], body: [
+      "................", "......XXXX......", ".....XXXXXX.....", "....XXXXXXXX....", "...XXXXXXXXXX...", "...XWWXXXXWWX...",
+      "...XWKXXXXWKX...", "...XXXXXXXXXX...", "...XXXXKKXXXX...", "...XXXXXXXXXX...", "....XXXXXXXX...."] },
+    { name: "cat", eyes: [5, 6], legs: [L1, L2], body: [
+      "................", "..X..........X..", "..XX........XX..", "..XXXXXXXXXXXX..", "..XXXXXXXXXXXX..", "..XXWWXXXXWWXX..",
+      "..XXWKXXXXWKXX..", "..XXXXXKKXXXXX..", ".XXXXXXXXXXXXXX.", "...XXXXXXXXXX...", "....XXXXXXXX...."] },
+  ];
+  const fix = r => r.padEnd(16, ".").slice(0, 16);
+  // walk / blink / jump frames for every design
+  const FRAMES = DESIGNS.map(({ body, eyes, legs }) => {
+    body = body.map(fix);
+    const blink = body.map((r, i) => !eyes.includes(i) ? r
+      : i === eyes[eyes.length - 1] ? r.replace(/[WK]/g, "K") : r.replace(/[WK]/g, "X"));
+    const arms = body.findIndex((r, i) => i >= 3 && r.includes("X"));
+    const jump = body.map((r, i) => (i === arms || i === arms + 1) ? "X" + r.slice(1, 15) + "X" : r);
+    // scream: blank white eyes, and the mouth ripped open two rows deep
+    const scream = jump.map((r, i) => (eyes.includes(i) ? r.replace(/K/g, "W") : r));
+    const lastEye = eyes.length ? eyes[eyes.length - 1] : 3;
+    const mouth = scream.reduce((m, r, i) => (i > lastEye && r.includes("K") ? i : m), -1);
+    if (mouth >= 0) {
+      const a = scream[mouth].indexOf("K") - 1, b = scream[mouth].lastIndexOf("K") + 1;
+      [mouth, mouth + 1].forEach(i => {
+        if (scream[i]) scream[i] = [...scream[i]].map((ch, x) => (x >= a && x <= b && ch !== "." ? "K" : ch)).join("");
+      });
+    }
+    return {
+      a: [...body, ...legs[0].map(fix)],
+      b: [...body, ...legs[1].map(fix)],
+      blink: [...blink, ...legs[0].map(fix)],
+      jump: [...jump, fix(legs[0][1]), "................"],
+      scream: [...scream, fix(legs[0][1]), "................"],
+    };
+  });
+  const INK = { W: "#f4f4f0", K: "#050505" };
+
+  const el = document.createElement("div");
+  el.className = "monster";
+  el.setAttribute("aria-hidden", "true");
+  // a 16×16 canvas scaled up with crisp pixels; the 13-row sprite sits at the bottom so its feet touch the edge
+  const cv = document.createElement("canvas");
+  cv.width = cv.height = 16;
+  el.appendChild(cv);
+  document.body.appendChild(el);
+  const g = cv.getContext("2d");
+  const pixel = (ch, color) => (ch === "X" ? color : INK[ch]);
+
+  let drawn = "";
+  function drawFrame(look, frame) {
+    const key = `${look.d}|${frame}|${look.color}`;
+    if (key === drawn) return;
+    drawn = key;
+    el.style.color = look.color; // the glow
+    g.clearRect(0, 0, 16, 16);
+    FRAMES[look.d][frame].forEach((row, y) => {
+      for (let x = 0; x < 16; x++) {
+        const ch = row[x];
+        if (ch === ".") continue;
+        g.fillStyle = pixel(ch, look.color);
+        g.fillRect(x, y + 3, 1, 1);
+      }
+    });
+  }
+  // mid-leap: pixels flip from the old monster to the new one in a noisy dissolve
+  const NOISE = Array.from({ length: 256 }, () => Math.random());
+  function drawMorph(from, to, p) {
+    drawn = "";
+    g.clearRect(0, 0, 16, 16);
+    const A = FRAMES[from.d].jump, B = FRAMES[to.d].jump;
+    for (let y = 0; y < 13; y++) for (let x = 0; x < 16; x++) {
+      const useNew = NOISE[y * 16 + x] + (Math.random() - .5) * .25 < p;
+      const ch = (useNew ? B : A)[y][x];
+      if (ch === ".") continue;
+      g.fillStyle = pixel(ch, useNew ? to.color : from.color);
+      g.fillRect(x, y + 3, 1, 1);
+    }
+  }
+
+  const sections = [...document.querySelectorAll(".content > section")];
+  const topbarEl = document.querySelector(".topbar");
+  const CORNERS = [[-1, -1], [1, -1], [1, 1], [-1, 1]]; // same rotation as the section circuits
+  let S = 48;
+  const W = () => document.documentElement.clientWidth;
+  const topLimit = () => (topbarEl ? topbarEl.offsetHeight : 0);
+
+  // where the edges are, and how far along each one it can walk
+  function bounds(edge) {
+    const w = W(), h = innerHeight, top = topLimit();
+    return edge === "top" || edge === "bottom"
+      ? { axis: "x", min: 8, max: w - S - 8 }
+      : { axis: "y", min: top + 8, max: h - S - 8 };
+  }
+  function at(edge, u) {
+    const w = W(), h = innerHeight;
+    if (edge === "bottom") return { x: u, y: h - S, r: 0 };
+    if (edge === "top") return { x: u, y: topLimit(), r: 180 };
+    if (edge === "left") return { x: 0, y: u, r: 90 };
+    return { x: w - S, y: u, r: -90 };
+  }
+
+  // the content's left/right edges in this section
+  function sideRoom(sec) {
+    const host = sec.matches(".section") ? sec : sec.querySelector(".section");
+    let l = Infinity, r = -Infinity;
+    for (const k of host.children) {
+      if (getComputedStyle(k).position === "absolute") continue;
+      const rc = k.getBoundingClientRect();
+      if (!rc.width) continue;
+      l = Math.min(l, rc.left); r = Math.max(r, rc.right);
+    }
+    return { left: l >= S + 24, right: W() - r >= S + 24 };
+  }
+  function chooseEdge(idx, prev) {
+    const [sx, sy] = CORNERS[idx % CORNERS.length];
+    const room = { ...sideRoom(sections[idx]), top: true, bottom: true };
+    const prefs = [sx < 0 ? "right" : "left", sy < 0 ? "bottom" : "top", sx < 0 ? "left" : "right", sy < 0 ? "top" : "bottom"];
+    return prefs.find(e => room[e] && e !== prev) || prefs.find(e => room[e]);
+  }
+
+  // state
+  let current = -2, edge = null, u = 0, dir = 1, flip = 1, mode = "hidden";
+  let flight = null, pauseUntil = 0, nextPause = 0, last = 0;
+  let look = null; // { d: design index, color } — what it currently looks like
+  const pos = { x: 0, y: 0, r: 0 };
+  const SPEED = 46; // px per second
+  let pop = 1, freakUntil = 0, coolUntil = 0, sprintUntil = 0;
+  let mouse = null; // last known cursor position
+
+  function render() {
+    el.style.transform = `translate3d(${pos.x.toFixed(1)}px, ${pos.y.toFixed(1)}px, 0) rotate(${pos.r.toFixed(1)}deg) scale(${flip * pop}, ${pop})`;
+  }
+  function faceAlong(edgeName, d) {
+    const rad = at(edgeName, 0).r * Math.PI / 180;
+    const [mx, my] = bounds(edgeName).axis === "x" ? [d, 0] : [0, d];
+    flip = Math.sign(mx * Math.cos(rad) + my * Math.sin(rad)) || 1;
+  }
+
+  function leapTo(newEdge, newLook = look) {
+    const b = bounds(newEdge);
+    const along = b.axis === "x" ? pos.x : pos.y;
+    const targetU = Math.min(b.max, Math.max(b.min, along));
+    const to = at(newEdge, targetU);
+    let dr = ((to.r - pos.r) % 360 + 540) % 360 - 180; // shortest turn
+    const fromLook = mode === "flying" ? flight.toLook : look;
+    el.classList.remove("freak");
+    pop = 1;
+    flight = { from: { ...pos }, to: { x: to.x, y: to.y, r: pos.r + dr }, t0: performance.now(), dur: reduced ? 0 : 820, edge: newEdge, u: targetU, fromLook, toLook: newLook };
+    mode = "flying";
+  }
+
+  function setSection(idx) {
+    if (idx === current) return;
+    current = idx;
+    if (idx < 0) { mode = "hidden"; el.classList.remove("on"); return; }
+    const newLook = { d: idx % DESIGNS.length, color: getComputedStyle(sections[idx]).getPropertyValue("--sec").trim() };
+    if (!look) look = newLook;
+    // mid-leap, "where it is" means the edge it's heading for
+    const from = mode === "flying" ? flight.edge : edge;
+    const next = chooseEdge(idx, from);
+    if (mode === "hidden" && !edge) {
+      // first appearance: drop in from above the middle of the screen
+      pos.x = W() / 2 - S / 2; pos.y = -S * 2; pos.r = 0;
+      el.classList.add("on");
+      leapTo(next, newLook);
+    } else if (mode === "hidden") {
+      el.classList.add("on");
+      if (next !== edge) leapTo(next, newLook); else { look = newLook; mode = "walk"; }
+    } else if (next !== from) {
+      leapTo(next, newLook);
+    } else {
+      look = newLook; // same edge (rare): just change outfit
+    }
+  }
+
+  function whichSection() {
+    const mid = innerHeight * .5;
+    const hero = document.getElementById("hero");
+    if (hero.getBoundingClientRect().bottom > mid) return -1;
+    for (let i = 0; i < sections.length; i++) if (sections[i].getBoundingClientRect().bottom > mid) return i;
+    return sections.length - 1; // the footer counts as the last section
+  }
+
+  function tick(now) {
+    const dt = Math.min(.05, (now - (last || now)) / 1000);
+    last = now;
+    if (mode === "flying") {
+      const f = flight, t = f.dur ? Math.min(1, (now - f.t0) / f.dur) : 1;
+      const e = t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      const mx = (f.from.x + f.to.x) / 2, my = (f.from.y + f.to.y) / 2;
+      const cx = W() / 2 - S / 2 - mx, cy = innerHeight / 2 - S / 2 - my, len = Math.hypot(cx, cy) || 1;
+      const lift = Math.min(200, 60 + Math.hypot(f.to.x - f.from.x, f.to.y - f.from.y) * .35) * Math.sin(Math.PI * t);
+      pos.x = f.from.x + (f.to.x - f.from.x) * e + cx / len * lift;
+      pos.y = f.from.y + (f.to.y - f.from.y) * e + cy / len * lift;
+      pos.r = f.from.r + (f.to.r - f.from.r) * e;
+      const p = Math.min(1, Math.max(0, (t - .3) / .4));
+      if (p <= 0) drawFrame(f.fromLook, "jump");
+      else if (p >= 1) drawFrame(f.toLook, "jump");
+      else drawMorph(f.fromLook, f.toLook, p);
+      el.style.color = (p < .5 ? f.fromLook : f.toLook).color; // the glow
+      if (t >= 1) {
+        look = f.toLook;
+        edge = f.edge; u = f.u; mode = "walk";
+        pos.r = at(edge, u).r;
+        dir = Math.random() < .5 ? 1 : -1;
+        faceAlong(edge, dir);
+        pauseUntil = now + 500; // a little landing beat
+        nextPause = now + 3500 + Math.random() * 4000;
+      }
+      render();
+    } else if (mode === "freak") {
+      // shaking, puffed up, flickering between screaming and arms-up
+      const p = at(edge, u), shake = reduced ? 0 : 1;
+      pos.x = p.x + (Math.random() - .5) * 12 * shake;
+      pos.y = p.y + (Math.random() - .5) * 12 * shake;
+      pos.r = p.r + (Math.random() - .5) * 34 * shake;
+      pop = reduced ? 1.2 : 1.35 + Math.random() * .2;
+      drawFrame(look, Math.floor(now / 70) % 3 ? "scream" : "jump");
+      render();
+      if (now > freakUntil) {
+        el.classList.remove("freak");
+        pop = 1;
+        // then it bolts: half the time a panic-leap to another edge, otherwise a sprint along this one
+        const room = sideRoom(sections[current]);
+        const others = ["top", "bottom", "left", "right"].filter(e => e !== edge && (e === "top" || e === "bottom" || room[e]));
+        if (!reduced && others.length && Math.random() < .5) leapTo(others[Math.floor(Math.random() * others.length)]);
+        else { mode = "walk"; sprintUntil = now + 1000; pauseUntil = 0; faceAlong(edge, dir); }
+      }
+    } else if (mode === "walk") {
+      const b = bounds(edge);
+      if (now < pauseUntil) {
+        const left = pauseUntil - now;
+        drawFrame(look, left > 350 && left < 520 ? "blink" : "a");
+      } else {
+        if (!reduced) u += dir * SPEED * (now < sprintUntil ? 6 : 1) * dt;
+        if (u <= b.min || u >= b.max) { u = Math.min(b.max, Math.max(b.min, u)); dir = -dir; faceAlong(edge, dir); }
+        drawFrame(look, reduced ? "a" : Math.floor(now / (now < sprintUntil ? 60 : 170)) % 2 ? "b" : "a");
+        if (now > nextPause) { pauseUntil = now + 900 + Math.random() * 900; nextPause = pauseUntil + 3000 + Math.random() * 5000; }
+      }
+      const p = at(edge, u);
+      pos.x = p.x; pos.y = p.y; pos.r = p.r;
+      render();
+      // is the cursor on it? (a little slack, it's small and moving)
+      const pad = 6;
+      if (mouse && mouse[0] > pos.x - pad && mouse[0] < pos.x + S + pad && mouse[1] > pos.y - pad && mouse[1] < pos.y + S + pad) poke(mouse[0], mouse[1]);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  function size() {
+    S = innerWidth < 600 ? 36 : 48;
+    el.style.width = el.style.height = S + "px";
+    if (edge && current >= 0) {
+      // the screen changed: re-pick if this edge no longer has room
+      const next = chooseEdge(current, null);
+      const b = bounds(edge);
+      u = Math.min(b.max, Math.max(b.min, u));
+      if (next !== edge && !sideRoom(sections[current])[edge] && (edge === "left" || edge === "right")) leapTo(next);
+    }
+  }
+
+  // ---- poke it ----
+  const YELLS = [
+    "AAAAAAAAA!!", "segfault!!", "KERNEL PANIC", "404: chill not found", "sudo leave me alone",
+    "rm -rf /fear", "NaN NaN NaN NaN", "undefined is not a function!!", "ctrl+z ctrl+z ctrl+z",
+    "while(true) { scream(); }", "stack overflow!!", "who touched prod?!",
+  ];
+  const bubble = document.createElement("div");
+  bubble.className = "monster-say";
+  bubble.setAttribute("aria-hidden", "true");
+  document.body.appendChild(bubble);
+  let bubbleTimer;
+  function say(text) {
+    bubble.textContent = text;
+    bubble.style.color = look.color;
+    bubble.classList.add("on");
+    // put it beside the monster, on the side facing the middle of the screen
+    const cx = pos.x + S / 2, cy = pos.y + S / 2, w = bubble.offsetWidth, h = bubble.offsetHeight;
+    const toX = Math.sign(W() / 2 - cx) || 1, toY = Math.sign(innerHeight / 2 - cy) || 1;
+    let bx = edge === "left" || edge === "right" ? cx + toX * (S * .9) - (toX < 0 ? w : 0) : cx - w / 2;
+    let by = edge === "top" || edge === "bottom" ? cy + toY * (S * .9) - (toY < 0 ? h : 0) : cy - h / 2;
+    bubble.style.left = Math.max(8, Math.min(W() - w - 8, bx)) + "px";
+    bubble.style.top = Math.max(8, Math.min(innerHeight - h - 8, by)) + "px";
+    clearTimeout(bubbleTimer);
+    bubbleTimer = setTimeout(() => bubble.classList.remove("on"), 1500);
+  }
+  function burst() {
+    const cx = pos.x + S / 2, cy = pos.y + S / 2;
+    for (let i = 0; i < 14; i++) {
+      const bit = document.createElement("i");
+      bit.className = "monster-bit";
+      const a = Math.random() * Math.PI * 2, d = 40 + Math.random() * 70;
+      bit.style.cssText = `left:${cx}px;top:${cy}px;--dx:${Math.cos(a) * d}px;--dy:${Math.sin(a) * d}px;background:${i % 4 ? look.color : "#f4f4f0"}`;
+      document.body.appendChild(bit);
+      bit.addEventListener("animationend", () => bit.remove());
+    }
+  }
+  function poke(x, y) {
+    const now = performance.now();
+    if (mode !== "walk" || now < coolUntil) return;
+    mode = "freak";
+    freakUntil = now + 1100;
+    coolUntil = now + 2800;
+    // when it bolts along its edge, it runs away from the cursor
+    const along = bounds(edge).axis === "x" ? x - (pos.x + S / 2) : y - (pos.y + S / 2);
+    dir = along > 0 ? -1 : 1;
+    el.classList.add("freak");
+    say(YELLS[Math.floor(Math.random() * YELLS.length)]);
+    if (!reduced) burst();
+  }
+  // browsers only fire hover events when the *mouse* moves, not when the monster walks
+  // under a still cursor, so remember where the mouse is and check it every frame (in tick)
+  addEventListener("pointermove", e => { if (e.pointerType !== "touch") mouse = [e.clientX, e.clientY]; }, { passive: true });
+  document.documentElement.addEventListener("mouseleave", () => (mouse = null));
+  // phones: a tap pokes it
+  el.addEventListener("pointerdown", e => poke(e.clientX, e.clientY));
+
+  let queued = false;
+  const onScroll = () => {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => { queued = false; setSection(whichSection()); });
+  };
+  addEventListener("scroll", onScroll, { passive: true });
+  addEventListener("resize", () => { size(); onScroll(); });
+  size();
+  setSection(whichSection());
+  requestAnimationFrame(tick);
+})();
